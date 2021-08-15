@@ -1,70 +1,61 @@
-import re
 from flask import Flask,render_template,request,redirect
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
 import random
 
-from werkzeug.utils import redirect
+
 
 app = Flask(__name__)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///app.db'
+app.config["SECRET_KEY"] ='c53e261ae2a3474ca2d82cc1c7b6713c'
+SQLALCHEMY_TRACK_MODIFICATIONS = True
+db  = SQLAlchemy(app)
+migrate = Migrate(app,db)
 
 
-datas =[
-    {
-        "id":1,
-        "title":"Test Todo 1",
-    },
-        {
-        "id":2,
-        "title":"Test Todo 2",
-    },
-        {
-        "id":3,
-        "title":"Test Todo 3",
-    },
-        {
-        "id":4,
-        "title":"Test Todo 4",
-    },
-]
+
+class Todo(db.Model):
+    id = db.Column(db.Integer,primary_key=True)
+    title = db.Column(db.String(200))
+
+
+
 
 
 @app.route("/home",methods=["GET","POST"])
 @app.route("/")
 def home():
     if request.method == "POST":
-        title = request.form["title"]
-        print("title------>",title)
-        new_todo={
-            "id" : random.randint(1,99999999999),
-            "title" : title,
-        }
-        datas.append(new_todo)
+        tit = request.form["title"]
+        t = Todo(title=tit)
+        db.session.add(t)
+        db.session.commit()
+        return redirect("/")
+    datas = Todo.query.all()
     return render_template('index.html',data=datas)
 
 @app.route("/remove/<int:todoid>")
 def removeTodo(todoid):
-    for todo in datas:
-        if todo["id"]==todoid:
-            datas.remove(todo)
-    return redirect('/')
+    todo = db.session.query(Todo).filter_by(id=todoid).first()
+    db.session.delete(todo)
+    db.session.commit()
+    return redirect("/")
+
+
 
 @app.route("/update/<int:todoid>")
 def updateTodo(todoid):
-    for todo in datas:
-        if todo["id"]==todoid:
-            return render_template('update.html',todo=todo)
-    return redirect('/')
+    todo = db.session.query(Todo).filter_by(id=todoid).first()
+    return render_template('update.html',todo=todo)
 
 @app.route("/updatetodo",methods=["POST"])
 def update():
     title = request.form['title']
     id = request.form['todoid']
-    # print("title------>",title)
-    # print("id------>",id)
-    for todo in datas:
-        if todo["id"]==int(id):
-            todo["title"]=title
-            return redirect('/')
-    return "ERROR"
+    todo = db.session.query(Todo).filter_by(id=id).first()
+    todo.title = title
+    db.session.commit()
+    return redirect("/")
 
 @app.route("/about")
 def about():
