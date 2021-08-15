@@ -1,0 +1,12 @@
+{% extends "layout.html" %}
+{% block body %}
+
+    <div class="container py-5">
+        <form action="/updatetodo" method="post">
+            <input type="text" value="{{todo['title']}}" name="title" />
+            <input type="hidden" value="{{todo['id']}}" name="todoid" />
+            <input type="submit" value="Update Todo">
+        </form>
+    </div>
+
+{% endblock %}
